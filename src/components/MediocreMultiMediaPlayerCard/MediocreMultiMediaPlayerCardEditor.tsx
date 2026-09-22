@@ -407,6 +407,12 @@ export const MediocreMultiMediaPlayerCardEditor: FC<
       </SubForm>
       <SubForm title="Advanced" error={getSubformError("height")}>
         <FormGroup>
+          <form.AppField
+            name="disable_player_focus_switching"
+            children={field => (
+              <field.Toggle label="Keep the selected player until I switch it" />
+            )}
+          />
           {size === "large" && (
             <Fragment>
               <form.AppField

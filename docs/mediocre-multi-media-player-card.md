@@ -5,7 +5,7 @@ A card for controlling and viewing multiple media players at once. Useful for ma
 Comes in two sizes:
 
 - **`large`** — Full-featured view with a massive player, tabs for search, queue, media browser, and speaker grouping.
-- **`compact`** — A single compact card (visually similar to the [Mediocre Media Player Card](./mediocre-media-player-card.md)) that displays the active player. Secondary actions (grouping, search, queue, media browser) open as modals.
+- **`compact`** — A single compact card (visually similar to the [Mediocre Media Player Card](./mediocre-media-player-card.md)) that displays one player at a time. When multiple players are configured, the switch button cycles through them in the order listed. Secondary actions (grouping, search, queue, media browser) open as modals.
 
 ## Features
 
@@ -47,6 +47,7 @@ media_players:
 type: "custom:mediocre-multi-media-player-card"
 size: compact
 entity_id: media_player.living_room_speaker
+disable_player_focus_switching: true
 media_players:
   - entity_id: media_player.living_room_speaker
     name: Living Room
@@ -60,6 +61,8 @@ media_players:
     name: Bedroom
 ```
 
+The switch button appears automatically when `size: compact` has more than one player. Set `disable_player_focus_switching: true` to keep the manually selected player visible; otherwise, playback activity can change the selected player after two minutes without interaction. In the visual editor, enable **Keep the selected player until I switch it** for this behavior.
+
 ## Options
 
 | Option                                        | Type    | Default  | Description                                                                                                                                                                                |
@@ -68,7 +71,7 @@ media_players:
 | `size`                                        | string  | Required | Card size: `large` (full multi-player panel) or `compact` (single compact card showing the active player)                                                                                  |
 | `entity_id`                                   | string  | Required | Entity ID of the initially selected / active media player                                                                                                                                  |
 | `use_art_colors`                              | boolean |          | Use artwork colors for the card                                                                                                                                                            |
-| `disable_player_focus_switching`              | boolean |          | Disable automatic switching of the focused player when playback starts                                                                                                                     |
+| `disable_player_focus_switching`              | boolean | `false`  | Keep the selected player until it is changed manually; disable automatic switching when playback starts                                                                                    |
 | `media_players`                               | array   | Required | List of media player configs (see below)                                                                                                                                                   |
 | `options.player_is_active_when`               | string  |          | When to consider a player active: `playing` or `playing_or_paused`                                                                                                                         |
 | `options.show_volume_step_buttons`            | boolean |          | Show volume `+`/`-` step buttons on volume sliders                                                                                                                                         |
