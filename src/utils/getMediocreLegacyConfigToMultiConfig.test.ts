@@ -130,6 +130,29 @@ describe("getMediocreLegacyConfigToMediocreMultiConfig", () => {
     });
   });
 
+  it("adds independent players without duplicating the main or grouped players", () => {
+    const result = getMediocreLegacyConfigToMediocreMultiConfig({
+      ...baseConfig,
+      media_players: [
+        "media_player.living_room",
+        "media_player.kitchen",
+        { entity: "media_player.office", name: "Office" },
+      ],
+    });
+
+    expect(result.media_players.map(player => player.entity_id)).toEqual([
+      "media_player.living_room",
+      "media_player.kitchen",
+      "media_player.bedroom",
+      "media_player.office",
+    ]);
+    expect(result.media_players[3]).toEqual({
+      entity_id: "media_player.office",
+      name: "Office",
+      can_be_grouped: false,
+    });
+  });
+
   it("should handle speaker_group with only string entities", () => {
     const config = {
       ...baseConfig,

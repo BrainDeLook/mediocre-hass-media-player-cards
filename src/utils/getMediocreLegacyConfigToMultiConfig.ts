@@ -18,7 +18,7 @@ export const getMediocreLegacyConfigToMediocreMultiConfig = (
       search: config.search,
       media_browser: config.media_browser,
       custom_buttons: config.custom_buttons,
-      can_be_grouped: true,
+      can_be_grouped: !!config.speaker_group?.entities?.length,
     },
     ...((
       config.speaker_group?.entities.map(entity => {
@@ -44,6 +44,18 @@ export const getMediocreLegacyConfigToMediocreMultiConfig = (
       }) ?? []
     ).filter(Boolean) as MediocreMultiMediaPlayerCardConfig["media_players"]),
   ];
+
+  const knownEntityIds = new Set(media_players.map(player => player.entity_id));
+  for (const entry of config.media_players ?? []) {
+    const entity_id = typeof entry === "string" ? entry : entry.entity;
+    if (!entity_id || knownEntityIds.has(entity_id)) continue;
+    media_players.push({
+      entity_id,
+      name: typeof entry === "string" ? undefined : entry.name,
+      can_be_grouped: false,
+    });
+    knownEntityIds.add(entity_id);
+  }
 
   return {
     type: "custom:mediocre-multi-media-player-card",

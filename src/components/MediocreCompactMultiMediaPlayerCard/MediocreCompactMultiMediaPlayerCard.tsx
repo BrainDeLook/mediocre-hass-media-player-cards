@@ -195,6 +195,8 @@ export const MediocreCompactMultiMediaPlayerCard = ({
   const hasGroupingFeature = useMemo(() => {
     if (isEmbeddedInMultiCard) return false;
     if (config.media_players.length <= 1) return false;
+    if (config.media_players.every(player => player.can_be_grouped === false))
+      return false;
     return true;
   }, [config, isEmbeddedInMultiCard]);
 

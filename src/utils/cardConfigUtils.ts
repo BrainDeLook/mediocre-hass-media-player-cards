@@ -12,6 +12,7 @@ export const getDefaultValuesFromConfig = (
 ): MediocreMediaPlayerCardConfig => ({
   type: config.type ?? `custom:mediocre-media-player-card`,
   entity_id: config?.entity_id ?? "",
+  ...(config.media_players ? { media_players: config.media_players } : {}),
   name: config?.name ?? null,
   use_art_colors: config?.use_art_colors ?? false,
   tap_opens_popup: config?.tap_opens_popup ?? false,
@@ -112,6 +113,8 @@ export const getSimpleConfigFromFormValues = (
   if (!config.lms_entity_id) delete config.lms_entity_id;
   if (!config.custom_buttons || config.custom_buttons.length === 0)
     delete config.custom_buttons;
+  if (!config.media_players || config.media_players.length === 0)
+    delete config.media_players;
 
   if (config.speaker_group?.entity_id === null) {
     delete config.speaker_group.entity_id;

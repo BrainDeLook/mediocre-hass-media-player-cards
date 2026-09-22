@@ -46,6 +46,21 @@ export const SelectedPlayerProvider = ({
     setSelectedPlayer(selectActiveMultiMediaPlayer(hass, config));
   }, [config.entity_id]); // eslint-disable-line react-hooks/exhaustive-deps -- intentionally only resets when the primary entity_id changes, not on every hass/config update
 
+  useEffect(() => {
+    if (
+      selectedPlayer &&
+      !config.media_players.some(
+        player => player.entity_id === selectedPlayer.entity_id
+      )
+    ) {
+      setSelectedPlayer(
+        config.media_players.find(
+          player => player.entity_id === config.entity_id
+        )
+      );
+    }
+  }, [config.media_players, config.entity_id, selectedPlayer]);
+
   // Update selectedPlayer when hass or config changes, unless card was interacted with in last 2 minutes
   useEffect(() => {
     if (config.disable_player_focus_switching) return;

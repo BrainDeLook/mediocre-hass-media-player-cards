@@ -80,6 +80,7 @@ const commonMediocreMediaPlayerCardConfigSchema = type({
 export const MediocreMediaPlayerCardConfigSchema =
   commonMediocreMediaPlayerCardConfigSchema.and({
     "tap_opens_popup?": "boolean",
+    "media_players?": mediaPlayerConfigEntityArray, // Additional players shown one at a time in the compact card
     "options?": commonMediocreMediaPlayerCardConfigOptionsSchema.and({
       "always_show_custom_buttons?": "boolean | null", // Always show custom buttons panel expanded
       "hide_when_off?": "boolean | null", // Hide the card when the media player is off

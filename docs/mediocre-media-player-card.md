@@ -11,7 +11,7 @@ A standard-sized media player card for Home Assistant. Supports grouping speaker
 - Custom action buttons
 - Music Assistant search integration
 - Media browser
-- Visual editor for configuration
+- Visual editor for configuration, including additional players in the same card
 
 ## Screenshots
 
@@ -23,6 +23,10 @@ A standard-sized media player card for Home Assistant. Supports grouping speaker
 ```yaml
 type: "custom:mediocre-media-player-card"
 entity_id: media_player.living_room_speaker
+media_players:
+  - media_player.kitchen_speaker
+  - entity: media_player.bedroom_speaker
+    name: Bedroom
 tap_opens_popup: true
 speaker_group:
   entities:
@@ -30,12 +34,15 @@ speaker_group:
     - media_player.bedroom_speaker
 ```
 
+In the visual editor, open **Additional media players (switch by button)** to add players. The compact card shows one player at a time and displays a switch button when there is more than one. The selected player stays visible until you press the button again. Players in `speaker_group.entities` are also available in the switch order.
+
 ## Options
 
 | Option                                        | Type    | Default  | Description                                                                                                                                                                                |
 | --------------------------------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `type`                                        | string  | Required | Lovelace card type (should be `"custom:mediocre-media-player-card"`)                                                                                                                       |
 | `entity_id`                                   | string  | Required | The entity ID of the media player                                                                                                                                                          |
+| `media_players`                               | array   |          | Additional media players to display one at a time; accepts entity IDs or `{entity, name}` entries                                                                                          |
 | `use_art_colors`                              | boolean |          | Use artwork colors for the card                                                                                                                                                            |
 | `action`                                      | object  |          | Tap/hold/double_tap action configuration (see actionTypes)                                                                                                                                 |
 | `speaker_group`                               | object  |          | Speaker grouping configuration                                                                                                                                                             |

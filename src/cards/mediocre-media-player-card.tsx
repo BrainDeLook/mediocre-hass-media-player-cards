@@ -66,6 +66,18 @@ class MediocreMediaPlayerCardWrapper extends CardWrapper<MediocreMediaPlayerCard
       }
     }
 
+    for (const entry of this.config.media_players ?? []) {
+      const entityId = typeof entry === "string" ? entry : entry.entity;
+      if (
+        getDidMediaPlayerUpdate(
+          prevHass.states[entityId] as MediaPlayerEntity,
+          hass.states[entityId] as MediaPlayerEntity
+        )
+      ) {
+        return true;
+      }
+    }
+
     return false;
   };
 

@@ -101,6 +101,21 @@ export const MediocreMediaPlayerCardEditor: FC<
         )}
       />
 
+      <SubForm
+        title="Additional media players (switch by button)"
+        error={getSubformError("media_players")}
+      >
+        <form.AppField
+          name="media_players"
+          children={field => (
+            <field.EntitiesPicker
+              label="Add media players to this card"
+              domains={["media_player"]}
+            />
+          )}
+        />
+      </SubForm>
+
       <form.AppField
         name="name"
         children={field => <field.Text label="Name (optional)" />}
