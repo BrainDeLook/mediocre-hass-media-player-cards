@@ -10,12 +10,7 @@ import {
   usePlayer,
   VolumeSlider,
 } from "@components";
-import {
-  getDeviceIcon,
-  getHass,
-  getVolumeControlTarget,
-  getVolumeIcon,
-} from "@utils";
+import { getDeviceIcon, getHass, getVolumeIcon } from "@utils";
 import { useActionProps } from "@hooks";
 import { theme } from "@constants/theme";
 import { memo } from "preact/compat";
@@ -83,7 +78,6 @@ export const MassiveViewView = memo<MassiveViewViewProps>(
         CardContext
       );
 
-    const player = usePlayer();
     const {
       entity_id,
       attributes: {
@@ -93,11 +87,10 @@ export const MassiveViewView = memo<MassiveViewViewProps>(
         volume_level: volumeLevel,
         is_volume_muted: isVolumeMuted,
       },
-    } = player;
+    } = usePlayer();
 
     const volume = volumeLevel ?? 0;
     const volumeMuted = isVolumeMuted ?? false;
-    const volumeTarget = getVolumeControlTarget(mediaPlayer, player);
 
     // Handle mute toggle
     const handleToggleMute = useCallback(() => {
@@ -174,8 +167,10 @@ export const MassiveViewView = memo<MassiveViewViewProps>(
               icon={VolumeIcon}
             />
             <VolumeSlider
-              entityId={volumeTarget.entityId}
-              syncGroupChildren={volumeTarget.syncGroupChildren}
+              entityId={
+                mediaPlayer.speaker_group_entity_id ?? mediaPlayer.entity_id
+              }
+              syncGroupChildren={true}
               sliderSize={"small"}
               showStepButtons={
                 config.options?.show_volume_step_buttons ?? false

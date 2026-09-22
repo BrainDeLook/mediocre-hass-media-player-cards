@@ -7,7 +7,7 @@ import {
   usePlayer,
 } from "@components";
 import { Fragment } from "preact/jsx-runtime";
-import { getHass, getVolumeControlTarget, getVolumeIcon } from "@utils";
+import { getHass, getVolumeIcon } from "@utils";
 import { css } from "@emotion/react";
 import { MediocreMultiMediaPlayerCardConfig } from "@types";
 import { useSelectedPlayer } from "@components/SelectedPlayerContext";
@@ -27,12 +27,9 @@ export const VolumeSlider = () => {
     useContext<CardContextType<MediocreMultiMediaPlayerCardConfig>>(
       CardContext
     );
-  const { selectedPlayer } = useSelectedPlayer();
-  const { entity_id } = selectedPlayer ?? {};
+  const { selectedPlayer: { entity_id, speaker_group_entity_id } = {} } =
+    useSelectedPlayer();
   const player = usePlayer();
-  const volumeTarget = selectedPlayer
-    ? getVolumeControlTarget(selectedPlayer, player)
-    : undefined;
   const volume = player.attributes?.volume_level ?? 0;
   const volumeMuted = player.attributes?.is_volume_muted ?? false;
 
@@ -49,13 +46,13 @@ export const VolumeSlider = () => {
     [volume, volumeMuted]
   );
 
-  if (!entity_id || !volumeTarget) return null;
+  if (!entity_id) return null;
   return (
     <div css={styles.root}>
       <IconButton size="x-small" onClick={handleToggleMute} icon={VolumeIcon} />
       <VolumeSliderComponent
-        entityId={volumeTarget.entityId}
-        syncGroupChildren={volumeTarget.syncGroupChildren}
+        entityId={speaker_group_entity_id ?? entity_id}
+        syncGroupChildren={true}
         sliderSize={"small"}
         showStepButtons={config.options?.show_volume_step_buttons ?? false}
         useVolumeUpDownForSteps={
