@@ -142,10 +142,6 @@ export const MediocreMediaPlayerCardEditor: FC<
   const removePlayer = (index: number) => {
     const nextConfig = removeAdditionalMediaPlayer(form.state.values, index);
     form.setFieldValue("media_players", nextConfig.media_players ?? []);
-    form.setFieldValue(
-      "speaker_group.entities",
-      nextConfig.speaker_group?.entities ?? []
-    );
     updateConfig(nextConfig);
     setSelectedPlayer("main");
   };
@@ -421,6 +417,30 @@ export const MediocreMediaPlayerCardEditor: FC<
                   name={`media_players[${extraIndex}].name` as never}
                   children={field => <field.Text label="Name (optional)" />}
                 />
+                <FormGroup
+                  css={css({
+                    display: "flex",
+                    flexDirection: "row",
+                    gap: "16px",
+                  })}
+                >
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].use_art_colors` as never
+                    }
+                    children={field => (
+                      <field.Toggle label="Use album art colors." />
+                    )}
+                  />
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].tap_opens_popup` as never
+                    }
+                    children={field => (
+                      <field.Toggle label="Tap opens popup." />
+                    )}
+                  />
+                </FormGroup>
                 <SubForm
                   title="Interactions"
                   error={getSubformError(`media_players[${extraIndex}].action`)}
@@ -433,26 +453,29 @@ export const MediocreMediaPlayerCardEditor: FC<
                 <SubForm
                   title="Speaker Group Configuration (optional)"
                   error={getSubformError(
-                    `media_players[${extraIndex}].speaker_group_entity_id`
+                    `media_players[${extraIndex}].speaker_group`
                   )}
                 >
                   <form.AppField
                     name={
-                      `media_players[${extraIndex}].speaker_group_entity_id` as never
+                      `media_players[${extraIndex}].speaker_group.entity_id` as never
                     }
                     children={field => (
                       <field.EntityPicker
-                        label="Group Media Player"
+                        label="Main Speaker Entity ID (Optional)"
                         domains={["media_player"]}
                       />
                     )}
                   />
                   <form.AppField
                     name={
-                      `media_players[${extraIndex}].can_be_grouped` as never
+                      `media_players[${extraIndex}].speaker_group.entities` as never
                     }
                     children={field => (
-                      <field.Toggle label="Enable speaker grouping for this player" />
+                      <field.EntitiesPicker
+                        label="Select Speakers (including main speaker)"
+                        domains={["media_player"]}
+                      />
                     )}
                   />
                 </SubForm>
@@ -528,6 +551,69 @@ export const MediocreMediaPlayerCardEditor: FC<
                       custom_buttons:
                         `media_players[${extraIndex}].custom_buttons` as never,
                     }}
+                  />
+                </SubForm>
+                <SubForm
+                  title="Additional options (optional)"
+                  error={getSubformError(
+                    `media_players[${extraIndex}].options`
+                  )}
+                >
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].options.always_show_power_button` as never
+                    }
+                    children={field => (
+                      <field.Toggle label="Always show power button." />
+                    )}
+                  />
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].options.always_show_custom_buttons` as never
+                    }
+                    children={field => (
+                      <field.Toggle label="Always show custom buttons panel below card" />
+                    )}
+                  />
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].options.hide_when_off` as never
+                    }
+                    children={field => (
+                      <field.Toggle label="Hide when media player is off" />
+                    )}
+                  />
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].options.hide_when_group_child` as never
+                    }
+                    children={field => (
+                      <field.Toggle label="Hide when media player is a group child" />
+                    )}
+                  />
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].options.show_volume_step_buttons` as never
+                    }
+                    children={field => (
+                      <field.Toggle label="Show volume step buttons + - on volume sliders" />
+                    )}
+                  />
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].options.use_volume_up_down_for_step_buttons` as never
+                    }
+                    children={field => (
+                      <field.Toggle label="Use volume_up and volume_down services for step buttons" />
+                    )}
+                  />
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].options.use_experimental_lms_media_browser` as never
+                    }
+                    children={field => (
+                      <field.Toggle label="Use experimental LMS media browser (requires lyrion_cli integration)" />
+                    )}
                   />
                 </SubForm>
               </Fragment>

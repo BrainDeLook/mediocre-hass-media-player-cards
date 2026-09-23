@@ -16,8 +16,18 @@ export const getDefaultValuesFromConfig = (
     ? {
         media_players: config.media_players.map(entry => {
           const player = typeof entry === "string" ? { entity: entry } : entry;
+          const { speaker_group_entity_id, ...settings } = player;
           return {
-            ...player,
+            ...settings,
+            use_art_colors: player.use_art_colors ?? false,
+            tap_opens_popup: player.tap_opens_popup ?? false,
+            speaker_group: {
+              entity_id:
+                player.speaker_group?.entity_id ??
+                speaker_group_entity_id ??
+                null,
+              entities: player.speaker_group?.entities ?? [],
+            },
             search: getSearchEntryArray(player.search, player.entity),
             media_browser: player.media_browser
               ? Array.isArray(player.media_browser)
@@ -29,6 +39,21 @@ export const getDefaultValuesFromConfig = (
                     },
                   ]
               : [],
+            options: {
+              always_show_power_button:
+                player.options?.always_show_power_button ?? false,
+              always_show_custom_buttons:
+                player.options?.always_show_custom_buttons ?? false,
+              hide_when_off: player.options?.hide_when_off ?? false,
+              hide_when_group_child:
+                player.options?.hide_when_group_child ?? false,
+              show_volume_step_buttons:
+                player.options?.show_volume_step_buttons ?? false,
+              use_volume_up_down_for_step_buttons:
+                player.options?.use_volume_up_down_for_step_buttons ?? false,
+              use_experimental_lms_media_browser:
+                player.options?.use_experimental_lms_media_browser ?? false,
+            },
           };
         }),
       }
@@ -133,8 +158,39 @@ export const getSimpleConfigFromFormValues = (
   if (!config.lms_entity_id) delete config.lms_entity_id;
   if (!config.custom_buttons || config.custom_buttons.length === 0)
     delete config.custom_buttons;
-  if (!config.media_players || config.media_players.length === 0)
+  if (!config.media_players || config.media_players.length === 0) {
     delete config.media_players;
+  } else {
+    config.media_players = config.media_players.map(entry => {
+      if (typeof entry === "string") return entry;
+      const player = { ...entry };
+      if (!player.use_art_colors) delete player.use_art_colors;
+      if (!player.tap_opens_popup) delete player.tap_opens_popup;
+      if (
+        !player.speaker_group?.entity_id &&
+        !player.speaker_group?.entities?.length
+      )
+        delete player.speaker_group;
+      if (Array.isArray(player.search) && player.search.length === 0)
+        delete player.search;
+      if (
+        Array.isArray(player.media_browser) &&
+        player.media_browser.length === 0
+      )
+        delete player.media_browser;
+      if (!player.custom_buttons?.length) delete player.custom_buttons;
+      if (player.options) {
+        const options = { ...player.options };
+        for (const key of Object.keys(options) as (keyof typeof options)[]) {
+          if (options[key] === false || options[key] === null)
+            delete options[key];
+        }
+        if (Object.keys(options).length) player.options = options;
+        else delete player.options;
+      }
+      return player;
+    });
+  }
 
   if (config.speaker_group?.entity_id === null) {
     delete config.speaker_group.entity_id;
@@ -196,26 +252,13 @@ export const removeAdditionalMediaPlayer = (
   const selected = config.media_players?.[index];
   if (!selected) return config;
 
-  const entity = typeof selected === "string" ? selected : selected.entity;
   const media_players = config.media_players?.filter(
     (_, playerIndex) => playerIndex !== index
   );
-  const speaker_group = config.speaker_group
-    ? {
-        ...config.speaker_group,
-        entities: config.speaker_group.entities.filter(
-          groupEntry =>
-            (typeof groupEntry === "string"
-              ? groupEntry
-              : groupEntry.entity) !== entity
-        ),
-      }
-    : undefined;
 
   return getSimpleConfigFromFormValues({
     ...config,
     media_players,
-    speaker_group,
   });
 };
 

@@ -27,7 +27,7 @@ afterAll(() => {
 
 describe("cardConfigUtils", () => {
   describe("removeAdditionalMediaPlayer", () => {
-    it("removes the selected player from the card and its speaker group", () => {
+    it("removes only the selected virtual card", () => {
       const config: MediocreMediaPlayerCardConfig = {
         type: "custom:mediocre-media-player-card",
         entity_id: "media_player.main",
@@ -45,7 +45,10 @@ describe("cardConfigUtils", () => {
       expect(result.media_players).toEqual([
         { entity: "media_player.bedroom", name: "Bedroom" },
       ]);
-      expect(result.speaker_group?.entities).toEqual(["media_player.main"]);
+      expect(result.speaker_group?.entities).toEqual([
+        "media_player.main",
+        "media_player.office",
+      ]);
     });
 
     it("removes the last player without leaving an empty media_players list", () => {
@@ -291,6 +294,41 @@ describe("cardConfigUtils", () => {
   });
 
   describe("getSimpleConfigFromFormValues", () => {
+    it("preserves separate settings for each virtual card after editing", () => {
+      const original: MediocreMediaPlayerCardConfig = {
+        type: "custom:mediocre-media-player-card",
+        entity_id: "media_player.main",
+        use_art_colors: true,
+        options: { show_volume_step_buttons: true },
+        media_players: [
+          {
+            entity: "media_player.second",
+            use_art_colors: false,
+            tap_opens_popup: true,
+            options: { hide_when_off: true },
+            speaker_group: { entities: ["media_player.third"] },
+          },
+        ],
+      };
+
+      const result = getSimpleConfigFromFormValues(
+        getDefaultValuesFromConfig(original)
+      );
+
+      expect(result.use_art_colors).toBe(true);
+      expect(result.options?.show_volume_step_buttons).toBe(true);
+      expect(result.media_players?.[0]).toMatchObject({
+        entity: "media_player.second",
+        tap_opens_popup: true,
+        options: { hide_when_off: true },
+        speaker_group: { entities: ["media_player.third"] },
+      });
+      expect(result.media_players?.[0]).not.toHaveProperty("use_art_colors");
+      expect(result.media_players?.[0]).not.toHaveProperty(
+        "options.show_volume_step_buttons"
+      );
+    });
+
     it("should preserve grid_options even when empty", () => {
       const configWithEmptyGridOptions: MediocreMediaPlayerCardConfig = {
         type: "custom:mediocre-media-player-card",
