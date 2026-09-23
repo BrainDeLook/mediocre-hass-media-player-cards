@@ -189,6 +189,36 @@ export const getSimpleConfigFromFormValues = (
   return config;
 };
 
+export const removeAdditionalMediaPlayer = (
+  config: MediocreMediaPlayerCardConfig,
+  index: number
+): MediocreMediaPlayerCardConfig => {
+  const selected = config.media_players?.[index];
+  if (!selected) return config;
+
+  const entity = typeof selected === "string" ? selected : selected.entity;
+  const media_players = config.media_players?.filter(
+    (_, playerIndex) => playerIndex !== index
+  );
+  const speaker_group = config.speaker_group
+    ? {
+        ...config.speaker_group,
+        entities: config.speaker_group.entities.filter(
+          groupEntry =>
+            (typeof groupEntry === "string"
+              ? groupEntry
+              : groupEntry.entity) !== entity
+        ),
+      }
+    : undefined;
+
+  return getSimpleConfigFromFormValues({
+    ...config,
+    media_players,
+    speaker_group,
+  });
+};
+
 /**
  * Removes unnecessary values from massive media player card config while preserving grid_options
  */
