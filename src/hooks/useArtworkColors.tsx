@@ -1,14 +1,37 @@
 import { Vibrant } from "node-vibrant/browser";
 import type { Palette } from "@vibrant/color";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "preact/hooks";
+import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
 import { usePlayer } from "@components";
 import { getCssColorVariable, isDarkMode, parseColorToHsla } from "@utils";
+
+const artworkPalettes = new Map<string, Palette>();
+const pendingPalettes = new Map<string, Promise<Palette | null>>();
+
+export function preloadArtworkPalette(
+  albumArt: string
+): Promise<Palette | null> {
+  const cached = artworkPalettes.get(albumArt);
+  if (cached) return Promise.resolve(cached);
+
+  const pending = pendingPalettes.get(albumArt);
+  if (pending) return pending;
+
+  const request = Vibrant.from(albumArt)
+    .getPalette()
+    .then(palette => {
+      if (artworkPalettes.size >= 100)
+        artworkPalettes.delete(artworkPalettes.keys().next().value!);
+      artworkPalettes.set(albumArt, palette);
+      return palette;
+    })
+    .catch(error => {
+      console.error("Error getting color with Vibrant:", error);
+      return null;
+    })
+    .finally(() => pendingPalettes.delete(albumArt));
+  pendingPalettes.set(albumArt, request);
+  return request;
+}
 
 export function useArtworkColors() {
   const {
@@ -16,44 +39,24 @@ export function useArtworkColors() {
   } = usePlayer();
 
   const albumArt = entity_picture_local || entity_picture;
-  const albumArtRef = useRef<string | undefined>(null);
-  const colorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // State for average color
-  const [palette, setPalette] = useState<Palette | null>(null);
+  const [palette, setPalette] = useState<Palette | null>(() =>
+    albumArt ? (artworkPalettes.get(albumArt) ?? null) : null
+  );
   // Track dark mode state
   const [darkMode, setDarkMode] = useState(isDarkMode());
 
-  // Handle image load to calculate average color
-  const getColors = useCallback(() => {
-    if (albumArt && albumArt !== albumArtRef.current) {
-      albumArtRef.current = albumArt;
-      if (colorTimeoutRef.current) clearTimeout(colorTimeoutRef.current);
-      // delay ensures we wait for the image to be loaded and rely on caching
-      colorTimeoutRef.current = setTimeout(() => {
-        if (albumArtRef.current !== albumArt) return;
-        Vibrant.from(albumArt)
-          .getPalette()
-          .then(palette => {
-            setPalette(palette);
-          })
-          .catch(e => {
-            setPalette(null);
-            console.error("Error getting color with Vibrant:", e);
-          });
-      }, 800);
-    }
-  }, [albumArt]);
-
-  // Reset average color when album art changes
   useEffect(() => {
-    if (albumArt) {
-      getColors();
-    }
+    let active = true;
+    setPalette(albumArt ? (artworkPalettes.get(albumArt) ?? null) : null);
+    if (albumArt)
+      preloadArtworkPalette(albumArt).then(colors => {
+        if (active) setPalette(colors);
+      });
     return () => {
-      if (colorTimeoutRef.current) clearTimeout(colorTimeoutRef.current);
+      active = false;
     };
-  }, [albumArt, getColors]);
+  }, [albumArt]);
 
   // Listen for dark mode changes
   useEffect(() => {
