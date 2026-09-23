@@ -88,11 +88,15 @@ const styles = {
 export type MediocreCompactMultiMediaPlayerCardProps = {
   isEmbeddedInMultiCard?: boolean;
   onClick?: () => void;
+  onSwitchPlayer?: () => void;
+  hideInternalPlayerSwitch?: boolean;
 };
 
 export const MediocreCompactMultiMediaPlayerCard = ({
   isEmbeddedInMultiCard,
   onClick,
+  onSwitchPlayer,
+  hideInternalPlayerSwitch = false,
 }: MediocreCompactMultiMediaPlayerCardProps) => {
   const { rootElement, config } =
     useContext<CardContextType<MediocreMultiMediaPlayerCardConfig>>(
@@ -249,10 +253,10 @@ export const MediocreCompactMultiMediaPlayerCard = ({
     });
   }, [entity_id]);
 
-  if (hideWhenOff && !isOn) {
+  if (hideWhenOff && !isOn && !onSwitchPlayer) {
     return null;
   }
-  if (hideWhenGroupChild && isGroupChild) {
+  if (hideWhenGroupChild && isGroupChild && !onSwitchPlayer) {
     return null;
   }
 
@@ -276,16 +280,19 @@ export const MediocreCompactMultiMediaPlayerCard = ({
                 <PlayerInfo />
               </div>
               <div css={styles.cardRowRight}>
-                {!isEmbeddedInMultiCard && config.media_players.length > 1 && (
-                  <IconButton
-                    id="mmpc-compact-switch-player"
-                    size="x-small"
-                    icon="mdi:swap-horizontal"
-                    title="Show next media player"
-                    aria-label="Show next media player"
-                    onClick={switchPlayer}
-                  />
-                )}
+                {!isEmbeddedInMultiCard &&
+                  (onSwitchPlayer ||
+                    (!hideInternalPlayerSwitch &&
+                      config.media_players.length > 1)) && (
+                    <IconButton
+                      id="mmpc-compact-switch-player"
+                      size="x-small"
+                      icon="mdi:swap-horizontal"
+                      title="Show next media player"
+                      aria-label="Show next media player"
+                      onClick={onSwitchPlayer ?? switchPlayer}
+                    />
+                  )}
                 {hasCustomButtons && !alwaysShowCustomButtons && (
                   <Fragment>
                     {custom_buttons.length === 1 ? (

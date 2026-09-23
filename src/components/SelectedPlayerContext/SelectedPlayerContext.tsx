@@ -27,8 +27,10 @@ export const SelectedPlayerContext = createContext<
 
 export const SelectedPlayerProvider = ({
   children,
+  lockToDefaultPlayer = false,
 }: {
   children: preact.ComponentChildren;
+  lockToDefaultPlayer?: boolean;
 }) => {
   const { config } =
     useContext<CardContextType<MediocreMultiMediaPlayerCardConfig>>(
@@ -39,11 +41,23 @@ export const SelectedPlayerProvider = ({
 
   const [selectedPlayer, setSelectedPlayer] = useState<
     MediocreMultiMediaPlayer | undefined
-  >(() => selectActiveMultiMediaPlayer(hass, config));
+  >(() =>
+    lockToDefaultPlayer
+      ? config.media_players.find(
+          player => player.entity_id === config.entity_id
+        )
+      : selectActiveMultiMediaPlayer(hass, config)
+  );
 
   useEffect(() => {
     lastInteractionRef.current = null;
-    setSelectedPlayer(selectActiveMultiMediaPlayer(hass, config));
+    setSelectedPlayer(
+      lockToDefaultPlayer
+        ? config.media_players.find(
+            player => player.entity_id === config.entity_id
+          )
+        : selectActiveMultiMediaPlayer(hass, config)
+    );
   }, [config.entity_id]); // eslint-disable-line react-hooks/exhaustive-deps -- intentionally only resets when the primary entity_id changes, not on every hass/config update
 
   useEffect(() => {
@@ -63,7 +77,7 @@ export const SelectedPlayerProvider = ({
 
   // Update selectedPlayer when hass or config changes, unless card was interacted with in last 2 minutes
   useEffect(() => {
-    if (config.disable_player_focus_switching) return;
+    if (lockToDefaultPlayer || config.disable_player_focus_switching) return;
     const now = Date.now();
     if (
       lastInteractionRef.current &&
@@ -79,7 +93,7 @@ export const SelectedPlayerProvider = ({
     if (newSelectedPlayer?.entity_id !== selectedPlayer?.entity_id) {
       setSelectedPlayer(newSelectedPlayer);
     }
-  }, [hass, config, selectedPlayer]);
+  }, [hass, config, selectedPlayer, lockToDefaultPlayer]);
 
   const setLastInteraction = useCallback(() => {
     lastInteractionRef.current = Date.now();

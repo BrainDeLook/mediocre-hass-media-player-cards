@@ -11,7 +11,7 @@ A standard-sized media player card for Home Assistant. Supports grouping speaker
 - Custom action buttons
 - Music Assistant search integration
 - Media browser
-- Visual editor for configuration, including additional players in the same card
+- Visual editor for independent player configurations in one card slot
 
 ## Screenshots
 
@@ -24,22 +24,27 @@ A standard-sized media player card for Home Assistant. Supports grouping speaker
 type: "custom:mediocre-media-player-card"
 entity_id: media_player.living_room_speaker
 media_players:
-  - media_player.kitchen_speaker
   - entity: media_player.bedroom_speaker
     name: Bedroom
     ma_entity_id: media_player.bedroom_music_assistant
+    use_art_colors: false
+    tap_opens_popup: false
+    options:
+      show_volume_step_buttons: false
     media_browser:
       - entity_id: media_player.bedroom_music_assistant
 tap_opens_popup: true
+use_art_colors: true
+options:
+  show_volume_step_buttons: true
 speaker_group:
   entities:
     - media_player.kitchen_speaker
-    - media_player.bedroom_speaker
 ```
 
-In the visual editor, open **Additional media players (switch by button)** to add players. When there is more than one player, use **Configure player** inside that section to select the main or an additional player; only the selected player's fields appear below it. With one player, the main settings remain directly visible in the editor. Each player can have its own name, interactions, speaker grouping, Music Assistant and LMS entities, search, media browser, and custom buttons. Removing an additional player also removes it from the speaker group list. The compact card shows one player at a time and displays a switch button when there is more than one. The selected player stays visible until you press the button again. Players in `speaker_group.entities` are also available in the switch order.
+In the visual editor, open **Additional media players (switch by button)** to add players. When there is more than one player, use **Configure player** inside that section to select the main or an additional player. Each selection is a separate virtual card with its own name, interactions, speaker grouping, Music Assistant and LMS entities, search, media browser, custom buttons, artwork colors, popup behavior, and display options. With one player, the main settings remain directly visible. The compact card shows one virtual card at a time; its switch button cycles through the main card and the additional cards. Removing an additional player removes only its virtual card. Speakers listed in `speaker_group.entities` remain available for grouping within their own card and do not become separate cards in the switch order.
 
-The `media_players` list accepts entity IDs, `{entity, name}` entries, and objects with the per-player options above. Card-wide display options such as `use_art_colors`, `tap_opens_popup`, and `options.show_volume_step_buttons` remain shared.
+The `media_players` list accepts entity IDs, `{entity, name}` entries, and objects with the same settings as the main card. Each additional card starts with its own defaults; settings from the main card are not copied. When several virtual cards are configured, `hide_when_off` and `hide_when_group_child` do not hide the currently selected card, so the switch button stays accessible.
 
 ## Options
 
@@ -47,7 +52,7 @@ The `media_players` list accepts entity IDs, `{entity, name}` entries, and objec
 | --------------------------------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `type`                                        | string  | Required | Lovelace card type (should be `"custom:mediocre-media-player-card"`)                                                                                                                       |
 | `entity_id`                                   | string  | Required | The entity ID of the media player                                                                                                                                                          |
-| `media_players`                               | array   |          | Additional media players to display one at a time; accepts entity IDs or objects with `entity` and individual player settings                                                              |
+| `media_players`                               | array   |          | Additional virtual cards to display one at a time; accepts entity IDs or objects with `entity` and individual card settings                                                                |
 | `use_art_colors`                              | boolean |          | Use artwork colors for the card                                                                                                                                                            |
 | `action`                                      | object  |          | Tap/hold/double_tap action configuration (see actionTypes)                                                                                                                                 |
 | `speaker_group`                               | object  |          | Speaker grouping configuration                                                                                                                                                             |

@@ -60,7 +60,13 @@ const searchConfig = searchEntry.array().or(searchLegacyEntry).or("undefined");
 export const additionalMediaPlayer = type({
   entity: "string",
   "name?": "string | null",
+  "use_art_colors?": "boolean",
+  "tap_opens_popup?": "boolean",
   "custom_buttons?": customButtons,
+  "speaker_group?": {
+    "entity_id?": type("string").or("null").or("undefined"),
+    entities: mediaPlayerConfigEntityArray,
+  },
   "speaker_group_entity_id?": type("string").or("null").or("undefined"),
   "can_be_grouped?": "boolean | null",
   "ma_entity_id?": type("string").or("null").or("undefined"),
@@ -69,6 +75,11 @@ export const additionalMediaPlayer = type({
   "search?": searchConfig,
   "media_browser?": mediaBrowser,
   "action?": interactionConfigSchema,
+  "options?": commonMediocreMediaPlayerCardConfigOptionsSchema.and({
+    "always_show_custom_buttons?": "boolean | null",
+    "hide_when_off?": "boolean | null",
+    "hide_when_group_child?": "boolean | null",
+  }),
 }).or("string");
 
 const commonMediocreMediaPlayerCardConfigSchema = type({
