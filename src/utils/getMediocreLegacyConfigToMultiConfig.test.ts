@@ -153,6 +153,45 @@ describe("getMediocreLegacyConfigToMediocreMultiConfig", () => {
     });
   });
 
+  it("keeps independent settings for an additional player", () => {
+    const result = getMediocreLegacyConfigToMediocreMultiConfig({
+      ...baseConfig,
+      speaker_group: undefined,
+      media_players: [
+        {
+          entity: "media_player.office",
+          name: "Office",
+          ma_entity_id: "media_player.office_ma",
+          speaker_group_entity_id: "media_player.office_group",
+          can_be_grouped: true,
+          action: { tap_action: { action: "toggle" } },
+          search: [{ entity_id: "media_player.office_ma" }],
+          media_browser: [{ entity_id: "media_player.office_ma" }],
+          custom_buttons: [
+            {
+              icon: "mdi:play",
+              name: "Play",
+              tap_action: { action: "toggle" },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.media_players[1]).toMatchObject({
+      entity_id: "media_player.office",
+      name: "Office",
+      ma_entity_id: "media_player.office_ma",
+      speaker_group_entity_id: "media_player.office_group",
+      can_be_grouped: true,
+      action: { tap_action: { action: "toggle" } },
+      search: [{ entity_id: "media_player.office_ma" }],
+      media_browser: [{ entity_id: "media_player.office_ma" }],
+      custom_buttons: [{ icon: "mdi:play", name: "Play" }],
+    });
+    expect(result.media_players[1]).not.toHaveProperty("entity");
+  });
+
   it("should handle speaker_group with only string entities", () => {
     const config = {
       ...baseConfig,

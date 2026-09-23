@@ -45,16 +45,24 @@ export const getMediocreLegacyConfigToMediocreMultiConfig = (
     ).filter(Boolean) as MediocreMultiMediaPlayerCardConfig["media_players"]),
   ];
 
-  const knownEntityIds = new Set(media_players.map(player => player.entity_id));
   for (const entry of config.media_players ?? []) {
     const entity_id = typeof entry === "string" ? entry : entry.entity;
-    if (!entity_id || knownEntityIds.has(entity_id)) continue;
+    if (!entity_id || entity_id === config.entity_id) continue;
+    const { entity: _entity, ...playerConfig } =
+      typeof entry === "string" ? { entity: entry } : entry;
+    const existingPlayer = media_players.find(
+      player => player.entity_id === entity_id
+    );
+    if (existingPlayer) {
+      Object.assign(existingPlayer, playerConfig);
+      continue;
+    }
     media_players.push({
+      ...playerConfig,
       entity_id,
-      name: typeof entry === "string" ? undefined : entry.name,
-      can_be_grouped: false,
+      can_be_grouped:
+        typeof entry === "string" ? false : (entry.can_be_grouped ?? false),
     });
-    knownEntityIds.add(entity_id);
   }
 
   return {

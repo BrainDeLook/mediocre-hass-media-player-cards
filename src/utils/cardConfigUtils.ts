@@ -12,7 +12,27 @@ export const getDefaultValuesFromConfig = (
 ): MediocreMediaPlayerCardConfig => ({
   type: config.type ?? `custom:mediocre-media-player-card`,
   entity_id: config?.entity_id ?? "",
-  ...(config.media_players ? { media_players: config.media_players } : {}),
+  ...(config.media_players
+    ? {
+        media_players: config.media_players.map(entry => {
+          const player = typeof entry === "string" ? { entity: entry } : entry;
+          return {
+            ...player,
+            search: getSearchEntryArray(player.search, player.entity),
+            media_browser: player.media_browser
+              ? Array.isArray(player.media_browser)
+                ? player.media_browser
+                : [
+                    {
+                      entity_id:
+                        player.media_browser.entity_id ?? player.entity,
+                    },
+                  ]
+              : [],
+          };
+        }),
+      }
+    : {}),
   name: config?.name ?? null,
   use_art_colors: config?.use_art_colors ?? false,
   tap_opens_popup: config?.tap_opens_popup ?? false,

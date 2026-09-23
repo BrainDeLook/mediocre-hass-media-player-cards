@@ -56,6 +56,21 @@ const searchEntry = type({
 
 const searchConfig = searchEntry.array().or(searchLegacyEntry).or("undefined");
 
+// Keep the original string and {entity, name} forms valid for existing cards.
+export const additionalMediaPlayer = type({
+  entity: "string",
+  "name?": "string | null",
+  "custom_buttons?": customButtons,
+  "speaker_group_entity_id?": type("string").or("null").or("undefined"),
+  "can_be_grouped?": "boolean | null",
+  "ma_entity_id?": type("string").or("null").or("undefined"),
+  "ma_favorite_button_entity_id?": type("string").or("null").or("undefined"),
+  "lms_entity_id?": type("string").or("null").or("undefined"),
+  "search?": searchConfig,
+  "media_browser?": mediaBrowser,
+  "action?": interactionConfigSchema,
+}).or("string");
+
 const commonMediocreMediaPlayerCardConfigSchema = type({
   type: "string",
   "name?": "string | null",
@@ -80,7 +95,7 @@ const commonMediocreMediaPlayerCardConfigSchema = type({
 export const MediocreMediaPlayerCardConfigSchema =
   commonMediocreMediaPlayerCardConfigSchema.and({
     "tap_opens_popup?": "boolean",
-    "media_players?": mediaPlayerConfigEntityArray, // Additional players shown one at a time in the compact card
+    "media_players?": additionalMediaPlayer.array(), // Additional players shown one at a time in the compact card
     "options?": commonMediocreMediaPlayerCardConfigOptionsSchema.and({
       "always_show_custom_buttons?": "boolean | null", // Always show custom buttons panel expanded
       "hide_when_off?": "boolean | null", // Hide the card when the media player is off
@@ -161,6 +176,7 @@ export type MediocreMultiMediaPlayerCardConfig =
   typeof MediocreMultiMediaPlayerCardConfigSchema.infer;
 export type MediocreMultiMediaPlayer = typeof MediocreMultiMediaPlayer.infer;
 export type MediaPlayerConfigEntity = typeof mediaPlayerConfigEntity.infer;
+export type AdditionalMediaPlayer = typeof additionalMediaPlayer.infer;
 export type MediaBrowserConfig = typeof mediaBrowser.infer;
 export type MediaBrowserEntry = typeof mediaBrowserEntry.infer;
 export type MediaBrowserLegacyEntry = typeof mediaBrowserLegacyEntry.infer;

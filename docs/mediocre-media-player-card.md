@@ -27,6 +27,9 @@ media_players:
   - media_player.kitchen_speaker
   - entity: media_player.bedroom_speaker
     name: Bedroom
+    ma_entity_id: media_player.bedroom_music_assistant
+    media_browser:
+      - entity_id: media_player.bedroom_music_assistant
 tap_opens_popup: true
 speaker_group:
   entities:
@@ -34,7 +37,9 @@ speaker_group:
     - media_player.bedroom_speaker
 ```
 
-In the visual editor, open **Additional media players (switch by button)** to add players. The compact card shows one player at a time and displays a switch button when there is more than one. The selected player stays visible until you press the button again. Players in `speaker_group.entities` are also available in the switch order.
+In the visual editor, open **Additional media players (switch by button)** to add players, then use **Configure player** to select the player whose settings you want to edit. Each additional player can have its own name, interactions, speaker grouping, Music Assistant and LMS entities, search, media browser, and custom buttons. The compact card shows one player at a time and displays a switch button when there is more than one. The selected player stays visible until you press the button again. Players in `speaker_group.entities` are also available in the switch order.
+
+The `media_players` list accepts entity IDs, `{entity, name}` entries, and objects with the per-player options above. Card-wide display options such as `use_art_colors`, `tap_opens_popup`, and `options.show_volume_step_buttons` remain shared.
 
 ## Options
 
@@ -42,7 +47,7 @@ In the visual editor, open **Additional media players (switch by button)** to ad
 | --------------------------------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `type`                                        | string  | Required | Lovelace card type (should be `"custom:mediocre-media-player-card"`)                                                                                                                       |
 | `entity_id`                                   | string  | Required | The entity ID of the media player                                                                                                                                                          |
-| `media_players`                               | array   |          | Additional media players to display one at a time; accepts entity IDs or `{entity, name}` entries                                                                                          |
+| `media_players`                               | array   |          | Additional media players to display one at a time; accepts entity IDs or objects with `entity` and individual player settings                                                             |
 | `use_art_colors`                              | boolean |          | Use artwork colors for the card                                                                                                                                                            |
 | `action`                                      | object  |          | Tap/hold/double_tap action configuration (see actionTypes)                                                                                                                                 |
 | `speaker_group`                               | object  |          | Speaker grouping configuration                                                                                                                                                             |
