@@ -110,14 +110,14 @@ export const MediocreMediaPlayerCardEditor: FC<
     state => state.values.media_players ?? []
   );
   const mainEntity = useStore(form.store, state => state.values.entity_id);
-  const [selectedPlayer, setSelectedPlayer] = useState("0");
+  const [selectedPlayer, setSelectedPlayer] = useState("main");
   const selectedIndex = Number(selectedPlayer);
   const extraIndex =
-    players.length > 0 && selectedIndex >= 0 && selectedIndex < players.length
+    selectedPlayer !== "main" &&
+    selectedIndex >= 0 &&
+    selectedIndex < players.length
       ? selectedIndex
-      : players.length > 0
-        ? 0
-        : null;
+      : null;
   const getSubformError = useCallback(
     (fieldName: string) => {
       return !!Object.keys(formErrorMap?.onChange ?? {}).find((key: string) =>
@@ -147,20 +147,11 @@ export const MediocreMediaPlayerCardEditor: FC<
       nextConfig.speaker_group?.entities ?? []
     );
     updateConfig(nextConfig);
-    setSelectedPlayer(
-      String(
-        Math.max(
-          0,
-          Math.min(index, (nextConfig.media_players?.length ?? 0) - 1)
-        )
-      )
-    );
+    setSelectedPlayer("main");
   };
 
-  if (!config || !hass) return null;
-
-  return (
-    <form.AppForm>
+  const mainSettings = (
+    <Fragment>
       <form.AppField
         name="entity_id"
         children={field => (
@@ -171,189 +162,6 @@ export const MediocreMediaPlayerCardEditor: FC<
           />
         )}
       />
-
-      <SubForm
-        title="Additional media players (switch by button)"
-        error={getSubformError("media_players")}
-      >
-        <form.Field name="media_players" mode="array">
-          {field => (
-            <EntityPicker
-              hass={hass}
-              value=""
-              onChange={value => {
-                if (
-                  value &&
-                  value !== mainEntity &&
-                  !field.state.value?.some(
-                    player =>
-                      (typeof player === "string" ? player : player.entity) ===
-                      value
-                  )
-                ) {
-                  const index = field.state.value?.length ?? 0;
-                  field.pushValue({ entity: value });
-                  setSelectedPlayer(String(index));
-                }
-              }}
-              label="Add a media player"
-              domains={["media_player"]}
-            />
-          )}
-        </form.Field>
-        {extraIndex !== null ? (
-          <Fragment key={extraIndex}>
-            <div css={styles.playerSelector}>
-              <div css={styles.playerSelectorHeader}>
-                <ha-icon icon="mdi:tune" />
-                <span>Configure additional player</span>
-              </div>
-              <FormSelect
-                fullWidth
-                options={players.map((player, index) => {
-                  const entity =
-                    typeof player === "string" ? player : player.entity;
-                  return {
-                    name:
-                      (typeof player === "string" ? undefined : player.name) ||
-                      hass.states[entity]?.attributes.friendly_name ||
-                      entity,
-                    value: String(index),
-                  };
-                })}
-                selected={String(extraIndex)}
-                onSelected={setSelectedPlayer}
-              />
-              <div css={styles.playerSelectorActions}>
-                <span css={styles.playerSelectorHint}>
-                  Settings for the selected player
-                </span>
-                <Button
-                  variant="danger"
-                  appearance="plain"
-                  onClick={() => removePlayer(extraIndex)}
-                >
-                  Remove player
-                </Button>
-              </div>
-            </div>
-            <form.AppField
-              name={`media_players[${extraIndex}].name` as never}
-              children={field => <field.Text label="Name (optional)" />}
-            />
-            <SubForm
-              title="Interactions"
-              error={getSubformError(`media_players[${extraIndex}].action`)}
-            >
-              <form.AppField
-                name={`media_players[${extraIndex}].action` as never}
-                children={field => <field.InteractionsPicker />}
-              />
-            </SubForm>
-            <SubForm
-              title="Speaker Group Configuration (optional)"
-              error={getSubformError(
-                `media_players[${extraIndex}].speaker_group_entity_id`
-              )}
-            >
-              <form.AppField
-                name={
-                  `media_players[${extraIndex}].speaker_group_entity_id` as never
-                }
-                children={field => (
-                  <field.EntityPicker
-                    label="Group Media Player"
-                    domains={["media_player"]}
-                  />
-                )}
-              />
-              <form.AppField
-                name={`media_players[${extraIndex}].can_be_grouped` as never}
-                children={field => (
-                  <field.Toggle label="Enable speaker grouping for this player" />
-                )}
-              />
-            </SubForm>
-            <SubForm
-              title="Music Assistant Configuration (optional)"
-              error={getSubformError(
-                `media_players[${extraIndex}].ma_entity_id`
-              )}
-            >
-              <FieldGroupMaEntities
-                form={form}
-                fields={{
-                  ma_entity_id:
-                    `media_players[${extraIndex}].ma_entity_id` as never,
-                  ma_favorite_button_entity_id:
-                    `media_players[${extraIndex}].ma_favorite_button_entity_id` as never,
-                }}
-              />
-            </SubForm>
-            <SubForm
-              title="LMS Configuration (optional)"
-              error={getSubformError(
-                `media_players[${extraIndex}].lms_entity_id`
-              )}
-            >
-              <form.AppField
-                name={`media_players[${extraIndex}].lms_entity_id` as never}
-                children={field => (
-                  <field.EntityPicker
-                    label="LMS Media Player Entity ID"
-                    domains={["media_player"]}
-                  />
-                )}
-              />
-            </SubForm>
-            <SubForm
-              title="Search (optional)"
-              error={getSubformError(`media_players[${extraIndex}].search`)}
-            >
-              <FieldGroupSearch
-                form={form}
-                fields={{
-                  search: `media_players[${extraIndex}].search` as never,
-                  ma_entity_id:
-                    `media_players[${extraIndex}].ma_entity_id` as never,
-                }}
-              />
-            </SubForm>
-            <SubForm
-              title="Media Browser (optional)"
-              error={getSubformError(
-                `media_players[${extraIndex}].media_browser`
-              )}
-            >
-              <FieldGroupMediaBrowser
-                form={form}
-                fields={{
-                  media_browser:
-                    `media_players[${extraIndex}].media_browser` as never,
-                }}
-              />
-            </SubForm>
-            <SubForm
-              title="Custom Buttons (optional)"
-              error={getSubformError(
-                `media_players[${extraIndex}].custom_buttons`
-              )}
-            >
-              <FieldGroupCustomButtons
-                form={form}
-                formErrors={formErrorMap as ValidationErrorMap<unknown>}
-                fields={{
-                  custom_buttons:
-                    `media_players[${extraIndex}].custom_buttons` as never,
-                }}
-              />
-            </SubForm>
-          </Fragment>
-        ) : (
-          <Fragment />
-        )}
-      </SubForm>
-
       <form.AppField
         name="name"
         children={field => <field.Text label="Name (optional)" />}
@@ -510,6 +318,227 @@ export const MediocreMediaPlayerCardEditor: FC<
           )}
         />
       </SubForm>
+    </Fragment>
+  );
+
+  if (!config || !hass) return null;
+
+  return (
+    <form.AppForm>
+      <SubForm
+        title="Additional media players (switch by button)"
+        error={getSubformError("media_players")}
+        initiallyExpanded={players.length > 0}
+      >
+        <form.Field name="media_players" mode="array">
+          {field => (
+            <EntityPicker
+              hass={hass}
+              value=""
+              onChange={value => {
+                if (
+                  value &&
+                  value !== mainEntity &&
+                  !field.state.value?.some(
+                    player =>
+                      (typeof player === "string" ? player : player.entity) ===
+                      value
+                  )
+                ) {
+                  const index = field.state.value?.length ?? 0;
+                  field.pushValue({ entity: value });
+                  setSelectedPlayer(String(index));
+                }
+              }}
+              label="Add a media player"
+              domains={["media_player"]}
+            />
+          )}
+        </form.Field>
+        {players.length > 0 ? (
+          <Fragment>
+            <div css={styles.playerSelector}>
+              <div css={styles.playerSelectorHeader}>
+                <ha-icon icon="mdi:tune" />
+                <span>Configure player</span>
+              </div>
+              <FormSelect
+                fullWidth
+                options={[
+                  {
+                    name: `${hass.states[mainEntity]?.attributes.friendly_name || mainEntity || "Main player"} (main)`,
+                    value: "main",
+                  },
+                  ...players.map((player, index) => {
+                    const entity =
+                      typeof player === "string" ? player : player.entity;
+                    return {
+                      name:
+                        (typeof player === "string"
+                          ? undefined
+                          : player.name) ||
+                        hass.states[entity]?.attributes.friendly_name ||
+                        entity,
+                      value: String(index),
+                    };
+                  }),
+                ]}
+                selected={extraIndex === null ? "main" : String(extraIndex)}
+                onSelected={setSelectedPlayer}
+              />
+              <div css={styles.playerSelectorActions}>
+                <span css={styles.playerSelectorHint}>
+                  {extraIndex === null
+                    ? "Main player settings"
+                    : "Additional player settings"}
+                </span>
+                {extraIndex !== null && (
+                  <Button
+                    variant="danger"
+                    appearance="plain"
+                    onClick={() => removePlayer(extraIndex)}
+                  >
+                    Remove player
+                  </Button>
+                )}
+              </div>
+            </div>
+            {extraIndex === null ? (
+              mainSettings
+            ) : (
+              <Fragment key={extraIndex}>
+                <form.AppField
+                  name={`media_players[${extraIndex}].entity` as never}
+                  children={field => (
+                    <field.EntityPicker
+                      label="Media Player Entity"
+                      required
+                      domains={["media_player"]}
+                    />
+                  )}
+                />
+                <form.AppField
+                  name={`media_players[${extraIndex}].name` as never}
+                  children={field => <field.Text label="Name (optional)" />}
+                />
+                <SubForm
+                  title="Interactions"
+                  error={getSubformError(`media_players[${extraIndex}].action`)}
+                >
+                  <form.AppField
+                    name={`media_players[${extraIndex}].action` as never}
+                    children={field => <field.InteractionsPicker />}
+                  />
+                </SubForm>
+                <SubForm
+                  title="Speaker Group Configuration (optional)"
+                  error={getSubformError(
+                    `media_players[${extraIndex}].speaker_group_entity_id`
+                  )}
+                >
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].speaker_group_entity_id` as never
+                    }
+                    children={field => (
+                      <field.EntityPicker
+                        label="Group Media Player"
+                        domains={["media_player"]}
+                      />
+                    )}
+                  />
+                  <form.AppField
+                    name={
+                      `media_players[${extraIndex}].can_be_grouped` as never
+                    }
+                    children={field => (
+                      <field.Toggle label="Enable speaker grouping for this player" />
+                    )}
+                  />
+                </SubForm>
+                <SubForm
+                  title="Music Assistant Configuration (optional)"
+                  error={getSubformError(
+                    `media_players[${extraIndex}].ma_entity_id`
+                  )}
+                >
+                  <FieldGroupMaEntities
+                    form={form}
+                    fields={{
+                      ma_entity_id:
+                        `media_players[${extraIndex}].ma_entity_id` as never,
+                      ma_favorite_button_entity_id:
+                        `media_players[${extraIndex}].ma_favorite_button_entity_id` as never,
+                    }}
+                  />
+                </SubForm>
+                <SubForm
+                  title="LMS Configuration (optional)"
+                  error={getSubformError(
+                    `media_players[${extraIndex}].lms_entity_id`
+                  )}
+                >
+                  <form.AppField
+                    name={`media_players[${extraIndex}].lms_entity_id` as never}
+                    children={field => (
+                      <field.EntityPicker
+                        label="LMS Media Player Entity ID"
+                        domains={["media_player"]}
+                      />
+                    )}
+                  />
+                </SubForm>
+                <SubForm
+                  title="Search (optional)"
+                  error={getSubformError(`media_players[${extraIndex}].search`)}
+                >
+                  <FieldGroupSearch
+                    form={form}
+                    fields={{
+                      search: `media_players[${extraIndex}].search` as never,
+                      ma_entity_id:
+                        `media_players[${extraIndex}].ma_entity_id` as never,
+                    }}
+                  />
+                </SubForm>
+                <SubForm
+                  title="Media Browser (optional)"
+                  error={getSubformError(
+                    `media_players[${extraIndex}].media_browser`
+                  )}
+                >
+                  <FieldGroupMediaBrowser
+                    form={form}
+                    fields={{
+                      media_browser:
+                        `media_players[${extraIndex}].media_browser` as never,
+                    }}
+                  />
+                </SubForm>
+                <SubForm
+                  title="Custom Buttons (optional)"
+                  error={getSubformError(
+                    `media_players[${extraIndex}].custom_buttons`
+                  )}
+                >
+                  <FieldGroupCustomButtons
+                    form={form}
+                    formErrors={formErrorMap as ValidationErrorMap<unknown>}
+                    fields={{
+                      custom_buttons:
+                        `media_players[${extraIndex}].custom_buttons` as never,
+                    }}
+                  />
+                </SubForm>
+              </Fragment>
+            )}
+          </Fragment>
+        ) : (
+          <Fragment />
+        )}
+      </SubForm>
+
+      {players.length === 0 && mainSettings}
     </form.AppForm>
   );
 };
