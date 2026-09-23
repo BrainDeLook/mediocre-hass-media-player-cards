@@ -15,6 +15,7 @@ import { FC, Fragment } from "preact/compat";
 import {
   getDefaultValuesFromConfig,
   getSimpleConfigFromFormValues,
+  removeAdditionalMediaPlayer,
 } from "@utils/cardConfigUtils";
 import { useAppForm } from "@components/Form/hooks/useAppForm";
 import { FieldGroupMediaBrowser } from "@components/Form/components/FieldGroupMediaBrowser";
@@ -35,9 +36,6 @@ const getEditorValues = (config: MediocreMediaPlayerCardConfig) => {
 
 const styles = {
   playerSelector: css({
-    border: "1px solid var(--outline-color, #e0e0e0)",
-    borderRadius: "6px",
-    padding: "12px 16px",
     marginBottom: "16px",
   }),
   playerSelectorHeader: css({
@@ -112,14 +110,14 @@ export const MediocreMediaPlayerCardEditor: FC<
     state => state.values.media_players ?? []
   );
   const mainEntity = useStore(form.store, state => state.values.entity_id);
-  const [selectedPlayer, setSelectedPlayer] = useState("main");
+  const [selectedPlayer, setSelectedPlayer] = useState("0");
   const selectedIndex = Number(selectedPlayer);
   const extraIndex =
-    selectedPlayer !== "main" &&
-    selectedIndex >= 0 &&
-    selectedIndex < players.length
+    players.length > 0 && selectedIndex >= 0 && selectedIndex < players.length
       ? selectedIndex
-      : null;
+      : players.length > 0
+        ? 0
+        : null;
   const getSubformError = useCallback(
     (fieldName: string) => {
       return !!Object.keys(formErrorMap?.onChange ?? {}).find((key: string) =>
@@ -141,88 +139,38 @@ export const MediocreMediaPlayerCardEditor: FC<
     }
   }, [config, form]);
 
+  const removePlayer = (index: number) => {
+    const nextConfig = removeAdditionalMediaPlayer(form.state.values, index);
+    form.setFieldValue("media_players", nextConfig.media_players ?? []);
+    form.setFieldValue(
+      "speaker_group.entities",
+      nextConfig.speaker_group?.entities ?? []
+    );
+    updateConfig(nextConfig);
+    setSelectedPlayer(
+      String(
+        Math.max(
+          0,
+          Math.min(index, (nextConfig.media_players?.length ?? 0) - 1)
+        )
+      )
+    );
+  };
+
   if (!config || !hass) return null;
 
   return (
     <form.AppForm>
-      {players.length > 0 && (
-        <div css={styles.playerSelector}>
-          <div css={styles.playerSelectorHeader}>
-            <ha-icon icon="mdi:tune" />
-            <span>Configure player</span>
-          </div>
-          <FormSelect
-            fullWidth
-            options={[
-              {
-                name:
-                  hass.states[mainEntity]?.attributes.friendly_name ||
-                  mainEntity ||
-                  "Main player",
-                value: "main",
-              },
-              ...players.map((player, index) => {
-                const entity =
-                  typeof player === "string" ? player : player.entity;
-                return {
-                  name:
-                    (typeof player === "string" ? undefined : player.name) ||
-                    hass.states[entity]?.attributes.friendly_name ||
-                    entity,
-                  value: String(index),
-                };
-              }),
-            ]}
-            selected={extraIndex === null ? "main" : String(extraIndex)}
-            onSelected={setSelectedPlayer}
+      <form.AppField
+        name="entity_id"
+        children={field => (
+          <field.EntityPicker
+            label="Main Media Player Entity"
+            required
+            domains={["media_player"]}
           />
-          <div css={styles.playerSelectorActions}>
-            <span css={styles.playerSelectorHint}>
-              {extraIndex === null ? "Main player" : "Additional player"}
-            </span>
-            {extraIndex !== null && (
-              <form.Field name="media_players" mode="array">
-                {field => (
-                  <Button
-                    variant="danger"
-                    appearance="plain"
-                    onClick={() => {
-                      field.removeValue(extraIndex);
-                      setSelectedPlayer("main");
-                    }}
-                  >
-                    Remove player
-                  </Button>
-                )}
-              </form.Field>
-            )}
-          </div>
-        </div>
-      )}
-
-      {extraIndex === null ? (
-        <form.AppField
-          name="entity_id"
-          children={field => (
-            <field.EntityPicker
-              label="Main Media Player Entity"
-              required
-              domains={["media_player"]}
-            />
-          )}
-        />
-      ) : (
-        <form.AppField
-          name={`media_players[${extraIndex}].entity` as never}
-          children={field => (
-            <field.EntityPicker
-              label="Media Player Entity"
-              required
-              domains={["media_player"]}
-            />
-          )}
-        />
-      )}
+        )}
+      />
 
       <SubForm
         title="Additional media players (switch by button)"
@@ -253,282 +201,315 @@ export const MediocreMediaPlayerCardEditor: FC<
             />
           )}
         </form.Field>
+        {extraIndex !== null ? (
+          <Fragment key={extraIndex}>
+            <div css={styles.playerSelector}>
+              <div css={styles.playerSelectorHeader}>
+                <ha-icon icon="mdi:tune" />
+                <span>Configure additional player</span>
+              </div>
+              <FormSelect
+                fullWidth
+                options={players.map((player, index) => {
+                  const entity =
+                    typeof player === "string" ? player : player.entity;
+                  return {
+                    name:
+                      (typeof player === "string" ? undefined : player.name) ||
+                      hass.states[entity]?.attributes.friendly_name ||
+                      entity,
+                    value: String(index),
+                  };
+                })}
+                selected={String(extraIndex)}
+                onSelected={setSelectedPlayer}
+              />
+              <div css={styles.playerSelectorActions}>
+                <span css={styles.playerSelectorHint}>
+                  Settings for the selected player
+                </span>
+                <Button
+                  variant="danger"
+                  appearance="plain"
+                  onClick={() => removePlayer(extraIndex)}
+                >
+                  Remove player
+                </Button>
+              </div>
+            </div>
+            <form.AppField
+              name={`media_players[${extraIndex}].name` as never}
+              children={field => <field.Text label="Name (optional)" />}
+            />
+            <SubForm
+              title="Interactions"
+              error={getSubformError(`media_players[${extraIndex}].action`)}
+            >
+              <form.AppField
+                name={`media_players[${extraIndex}].action` as never}
+                children={field => <field.InteractionsPicker />}
+              />
+            </SubForm>
+            <SubForm
+              title="Speaker Group Configuration (optional)"
+              error={getSubformError(
+                `media_players[${extraIndex}].speaker_group_entity_id`
+              )}
+            >
+              <form.AppField
+                name={
+                  `media_players[${extraIndex}].speaker_group_entity_id` as never
+                }
+                children={field => (
+                  <field.EntityPicker
+                    label="Group Media Player"
+                    domains={["media_player"]}
+                  />
+                )}
+              />
+              <form.AppField
+                name={`media_players[${extraIndex}].can_be_grouped` as never}
+                children={field => (
+                  <field.Toggle label="Enable speaker grouping for this player" />
+                )}
+              />
+            </SubForm>
+            <SubForm
+              title="Music Assistant Configuration (optional)"
+              error={getSubformError(
+                `media_players[${extraIndex}].ma_entity_id`
+              )}
+            >
+              <FieldGroupMaEntities
+                form={form}
+                fields={{
+                  ma_entity_id:
+                    `media_players[${extraIndex}].ma_entity_id` as never,
+                  ma_favorite_button_entity_id:
+                    `media_players[${extraIndex}].ma_favorite_button_entity_id` as never,
+                }}
+              />
+            </SubForm>
+            <SubForm
+              title="LMS Configuration (optional)"
+              error={getSubformError(
+                `media_players[${extraIndex}].lms_entity_id`
+              )}
+            >
+              <form.AppField
+                name={`media_players[${extraIndex}].lms_entity_id` as never}
+                children={field => (
+                  <field.EntityPicker
+                    label="LMS Media Player Entity ID"
+                    domains={["media_player"]}
+                  />
+                )}
+              />
+            </SubForm>
+            <SubForm
+              title="Search (optional)"
+              error={getSubformError(`media_players[${extraIndex}].search`)}
+            >
+              <FieldGroupSearch
+                form={form}
+                fields={{
+                  search: `media_players[${extraIndex}].search` as never,
+                  ma_entity_id:
+                    `media_players[${extraIndex}].ma_entity_id` as never,
+                }}
+              />
+            </SubForm>
+            <SubForm
+              title="Media Browser (optional)"
+              error={getSubformError(
+                `media_players[${extraIndex}].media_browser`
+              )}
+            >
+              <FieldGroupMediaBrowser
+                form={form}
+                fields={{
+                  media_browser:
+                    `media_players[${extraIndex}].media_browser` as never,
+                }}
+              />
+            </SubForm>
+            <SubForm
+              title="Custom Buttons (optional)"
+              error={getSubformError(
+                `media_players[${extraIndex}].custom_buttons`
+              )}
+            >
+              <FieldGroupCustomButtons
+                form={form}
+                formErrors={formErrorMap as ValidationErrorMap<unknown>}
+                fields={{
+                  custom_buttons:
+                    `media_players[${extraIndex}].custom_buttons` as never,
+                }}
+              />
+            </SubForm>
+          </Fragment>
+        ) : (
+          <Fragment />
+        )}
       </SubForm>
 
-      {extraIndex === null ? (
-        <Fragment>
-          <form.AppField
-            name="name"
-            children={field => <field.Text label="Name (optional)" />}
-          />
+      <form.AppField
+        name="name"
+        children={field => <field.Text label="Name (optional)" />}
+      />
 
-          <FormGroup
-            css={css({ display: "flex", flexDirection: "row", gap: "16px" })}
-          >
-            <form.AppField
-              name="use_art_colors"
-              children={field => <field.Toggle label="Use album art colors." />}
-            />
-            <form.AppField
-              name="tap_opens_popup"
-              children={field => <field.Toggle label="Tap opens popup." />}
-            />
-          </FormGroup>
+      <FormGroup
+        css={css({ display: "flex", flexDirection: "row", gap: "16px" })}
+      >
+        <form.AppField
+          name="use_art_colors"
+          children={field => <field.Toggle label="Use album art colors." />}
+        />
+        <form.AppField
+          name="tap_opens_popup"
+          children={field => <field.Toggle label="Tap opens popup." />}
+        />
+      </FormGroup>
 
-          <SubForm title="Interactions" error={getSubformError("action")}>
-            <form.Field
-              name="tap_opens_popup"
-              children={tapField =>
-                tapField.state.value && (
-                  <Label>Tap action overridden by "tap opens popup".</Label>
-                )
-              }
-            />
-            <form.AppField
-              name="action"
-              children={field => <field.InteractionsPicker />}
-            />
-          </SubForm>
+      <SubForm title="Interactions" error={getSubformError("action")}>
+        <form.Field
+          name="tap_opens_popup"
+          children={tapField =>
+            tapField.state.value && (
+              <Label>Tap action overridden by "tap opens popup".</Label>
+            )
+          }
+        />
+        <form.AppField
+          name="action"
+          children={field => <field.InteractionsPicker />}
+        />
+      </SubForm>
 
-          <SubForm
-            title="Speaker Group Configuration (optional)"
-            error={getSubformError("speaker_group")}
-          >
-            <form.AppField
-              name="speaker_group.entity_id"
-              children={field => (
-                <field.EntityPicker
-                  label="Main Speaker Entity ID (Optional)"
-                  domains={["media_player"]}
-                />
-              )}
+      <SubForm
+        title="Speaker Group Configuration (optional)"
+        error={getSubformError("speaker_group")}
+      >
+        <form.AppField
+          name="speaker_group.entity_id"
+          children={field => (
+            <field.EntityPicker
+              label="Main Speaker Entity ID (Optional)"
+              domains={["media_player"]}
             />
-            <form.AppField
-              name="speaker_group.entities"
-              children={field => (
-                <field.EntitiesPicker
-                  label="Select Speakers (including main speaker)"
-                  domains={["media_player"]}
-                />
-              )}
+          )}
+        />
+        <form.AppField
+          name="speaker_group.entities"
+          children={field => (
+            <field.EntitiesPicker
+              label="Select Speakers (including main speaker)"
+              domains={["media_player"]}
             />
-          </SubForm>
+          )}
+        />
+      </SubForm>
 
-          <SubForm
-            title="Music Assistant Configuration (optional)"
-            error={
-              getSubformError("ma_entity_id") ??
-              getSubformError("ma_favorite_button_entity_id")
-            }
-          >
-            <FieldGroupMaEntities
-              form={form}
-              fields={{
-                ma_entity_id: "ma_entity_id",
-                ma_favorite_button_entity_id: "ma_favorite_button_entity_id",
-              }}
+      <SubForm
+        title="Music Assistant Configuration (optional)"
+        error={
+          getSubformError("ma_entity_id") ??
+          getSubformError("ma_favorite_button_entity_id")
+        }
+      >
+        <FieldGroupMaEntities
+          form={form}
+          fields={{
+            ma_entity_id: "ma_entity_id",
+            ma_favorite_button_entity_id: "ma_favorite_button_entity_id",
+          }}
+        />
+      </SubForm>
+      <SubForm
+        title="LMS Configuration (optional)"
+        error={getSubformError("lms_entity_id")}
+      >
+        <form.AppField
+          name="lms_entity_id"
+          children={field => (
+            <field.EntityPicker
+              label="LMS Media Player Entity ID"
+              domains={["media_player"]}
             />
-          </SubForm>
-          <SubForm
-            title="LMS Configuration (optional)"
-            error={getSubformError("lms_entity_id")}
-          >
-            <form.AppField
-              name="lms_entity_id"
-              children={field => (
-                <field.EntityPicker
-                  label="LMS Media Player Entity ID"
-                  domains={["media_player"]}
-                />
-              )}
-            />
-          </SubForm>
-          <SubForm title="Search (optional)" error={getSubformError("search")}>
-            <FieldGroupSearch
-              form={form}
-              fields={{ search: "search", ma_entity_id: "ma_entity_id" }}
-            />
-          </SubForm>
-          <SubForm
-            title="Media Browser (optional)"
-            error={getSubformError("media_browser")}
-          >
-            <FieldGroupMediaBrowser
-              form={form}
-              fields={{ media_browser: "media_browser" as never }} // todo this casting is stupid
-            />
-          </SubForm>
-          <SubForm
-            title="Custom Buttons (optional)"
-            error={getSubformError("custom_buttons")}
-          >
-            <FieldGroupCustomButtons
-              form={form}
-              formErrors={formErrorMap as ValidationErrorMap<unknown>}
-              fields={{ custom_buttons: "custom_buttons" as never }} // todo this casting is stupid
-            />
-          </SubForm>
-          <SubForm
-            title="Additional options (optional)"
-            error={getSubformError("options")}
-          >
-            <form.AppField
-              name="options.always_show_power_button"
-              children={field => (
-                <field.Toggle label="Always show power button." />
-              )}
-            />
-            <form.AppField
-              name="options.always_show_custom_buttons"
-              children={field => (
-                <field.Toggle label="Always show custom buttons panel below card" />
-              )}
-            />
-            <form.AppField
-              name="options.hide_when_off"
-              children={field => (
-                <field.Toggle label="Hide when media player is off" />
-              )}
-            />
-            <form.AppField
-              name="options.hide_when_group_child"
-              children={field => (
-                <field.Toggle label="Hide when media player is a group child" />
-              )}
-            />
-            <form.AppField
-              name="options.show_volume_step_buttons"
-              children={field => (
-                <field.Toggle label="Show volume step buttons + - on volume sliders" />
-              )}
-            />
-            <form.AppField
-              name="options.use_volume_up_down_for_step_buttons"
-              children={field => (
-                <field.Toggle label="Use volume_up and volume_down services for step buttons (breaks volume sync when step buttons are used)" />
-              )}
-            />
-            <form.AppField
-              name="options.use_experimental_lms_media_browser"
-              children={field => (
-                <field.Toggle label="Use experimental LMS media browser (requires lyrion_cli integration)" />
-              )}
-            />
-          </SubForm>
-        </Fragment>
-      ) : (
-        <Fragment>
-          <form.AppField
-            name={`media_players[${extraIndex}].name` as never}
-            children={field => <field.Text label="Name (optional)" />}
-          />
-          <SubForm
-            title="Interactions"
-            error={getSubformError(`media_players[${extraIndex}].action`)}
-          >
-            <form.AppField
-              name={`media_players[${extraIndex}].action` as never}
-              children={field => <field.InteractionsPicker />}
-            />
-          </SubForm>
-          <SubForm
-            title="Speaker Group Configuration (optional)"
-            error={getSubformError(
-              `media_players[${extraIndex}].speaker_group_entity_id`
-            )}
-          >
-            <form.AppField
-              name={
-                `media_players[${extraIndex}].speaker_group_entity_id` as never
-              }
-              children={field => (
-                <field.EntityPicker
-                  label="Group Media Player"
-                  domains={["media_player"]}
-                />
-              )}
-            />
-            <form.AppField
-              name={`media_players[${extraIndex}].can_be_grouped` as never}
-              children={field => (
-                <field.Toggle label="Enable speaker grouping for this player" />
-              )}
-            />
-          </SubForm>
-          <SubForm
-            title="Music Assistant Configuration (optional)"
-            error={getSubformError(`media_players[${extraIndex}].ma_entity_id`)}
-          >
-            <FieldGroupMaEntities
-              form={form}
-              fields={{
-                ma_entity_id:
-                  `media_players[${extraIndex}].ma_entity_id` as never,
-                ma_favorite_button_entity_id:
-                  `media_players[${extraIndex}].ma_favorite_button_entity_id` as never,
-              }}
-            />
-          </SubForm>
-          <SubForm
-            title="LMS Configuration (optional)"
-            error={getSubformError(
-              `media_players[${extraIndex}].lms_entity_id`
-            )}
-          >
-            <form.AppField
-              name={`media_players[${extraIndex}].lms_entity_id` as never}
-              children={field => (
-                <field.EntityPicker
-                  label="LMS Media Player Entity ID"
-                  domains={["media_player"]}
-                />
-              )}
-            />
-          </SubForm>
-          <SubForm
-            title="Search (optional)"
-            error={getSubformError(`media_players[${extraIndex}].search`)}
-          >
-            <FieldGroupSearch
-              form={form}
-              fields={{
-                search: `media_players[${extraIndex}].search` as never,
-                ma_entity_id:
-                  `media_players[${extraIndex}].ma_entity_id` as never,
-              }}
-            />
-          </SubForm>
-          <SubForm
-            title="Media Browser (optional)"
-            error={getSubformError(
-              `media_players[${extraIndex}].media_browser`
-            )}
-          >
-            <FieldGroupMediaBrowser
-              form={form}
-              fields={{
-                media_browser:
-                  `media_players[${extraIndex}].media_browser` as never,
-              }}
-            />
-          </SubForm>
-          <SubForm
-            title="Custom Buttons (optional)"
-            error={getSubformError(
-              `media_players[${extraIndex}].custom_buttons`
-            )}
-          >
-            <FieldGroupCustomButtons
-              form={form}
-              formErrors={formErrorMap as ValidationErrorMap<unknown>}
-              fields={{
-                custom_buttons:
-                  `media_players[${extraIndex}].custom_buttons` as never,
-              }}
-            />
-          </SubForm>
-        </Fragment>
-      )}
+          )}
+        />
+      </SubForm>
+      <SubForm title="Search (optional)" error={getSubformError("search")}>
+        <FieldGroupSearch
+          form={form}
+          fields={{ search: "search", ma_entity_id: "ma_entity_id" }}
+        />
+      </SubForm>
+      <SubForm
+        title="Media Browser (optional)"
+        error={getSubformError("media_browser")}
+      >
+        <FieldGroupMediaBrowser
+          form={form}
+          fields={{ media_browser: "media_browser" as never }} // todo this casting is stupid
+        />
+      </SubForm>
+      <SubForm
+        title="Custom Buttons (optional)"
+        error={getSubformError("custom_buttons")}
+      >
+        <FieldGroupCustomButtons
+          form={form}
+          formErrors={formErrorMap as ValidationErrorMap<unknown>}
+          fields={{ custom_buttons: "custom_buttons" as never }} // todo this casting is stupid
+        />
+      </SubForm>
+      <SubForm
+        title="Additional options (optional)"
+        error={getSubformError("options")}
+      >
+        <form.AppField
+          name="options.always_show_power_button"
+          children={field => <field.Toggle label="Always show power button." />}
+        />
+        <form.AppField
+          name="options.always_show_custom_buttons"
+          children={field => (
+            <field.Toggle label="Always show custom buttons panel below card" />
+          )}
+        />
+        <form.AppField
+          name="options.hide_when_off"
+          children={field => (
+            <field.Toggle label="Hide when media player is off" />
+          )}
+        />
+        <form.AppField
+          name="options.hide_when_group_child"
+          children={field => (
+            <field.Toggle label="Hide when media player is a group child" />
+          )}
+        />
+        <form.AppField
+          name="options.show_volume_step_buttons"
+          children={field => (
+            <field.Toggle label="Show volume step buttons + - on volume sliders" />
+          )}
+        />
+        <form.AppField
+          name="options.use_volume_up_down_for_step_buttons"
+          children={field => (
+            <field.Toggle label="Use volume_up and volume_down services for step buttons (breaks volume sync when step buttons are used)" />
+          )}
+        />
+        <form.AppField
+          name="options.use_experimental_lms_media_browser"
+          children={field => (
+            <field.Toggle label="Use experimental LMS media browser (requires lyrion_cli integration)" />
+          )}
+        />
+      </SubForm>
     </form.AppForm>
   );
 };

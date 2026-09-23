@@ -37,7 +37,7 @@ speaker_group:
     - media_player.bedroom_speaker
 ```
 
-In the visual editor, open **Additional media players (switch by button)** to add players, then use **Configure player** to select the player whose settings you want to edit. Each additional player can have its own name, interactions, speaker grouping, Music Assistant and LMS entities, search, media browser, and custom buttons. The compact card shows one player at a time and displays a switch button when there is more than one. The selected player stays visible until you press the button again. Players in `speaker_group.entities` are also available in the switch order.
+In the visual editor, open **Additional media players (switch by button)** to add players. Inside that section, select an additional player to edit its name, interactions, speaker grouping, Music Assistant and LMS entities, search, media browser, and custom buttons. The main player's settings remain in the regular editor fields below. Removing an additional player also removes it from the speaker group list. The compact card shows one player at a time and displays a switch button when there is more than one. The selected player stays visible until you press the button again. Players in `speaker_group.entities` are also available in the switch order.
 
 The `media_players` list accepts entity IDs, `{entity, name}` entries, and objects with the per-player options above. Card-wide display options such as `use_art_colors`, `tap_opens_popup`, and `options.show_volume_step_buttons` remain shared.
 

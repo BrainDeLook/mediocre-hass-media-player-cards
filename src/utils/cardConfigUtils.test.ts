@@ -3,6 +3,7 @@ import {
   getDefaultValuesFromMassiveConfig,
   getSimpleConfigFromFormValues,
   getSimpleConfigFromMassiveFormValues,
+  removeAdditionalMediaPlayer,
 } from "@utils/cardConfigUtils";
 import {
   MediocreMediaPlayerCardConfig,
@@ -25,6 +26,42 @@ afterAll(() => {
 });
 
 describe("cardConfigUtils", () => {
+  describe("removeAdditionalMediaPlayer", () => {
+    it("removes the selected player from the card and its speaker group", () => {
+      const config: MediocreMediaPlayerCardConfig = {
+        type: "custom:mediocre-media-player-card",
+        entity_id: "media_player.main",
+        media_players: [
+          { entity: "media_player.office", name: "Office" },
+          { entity: "media_player.bedroom", name: "Bedroom" },
+        ],
+        speaker_group: {
+          entities: ["media_player.main", "media_player.office"],
+        },
+      };
+
+      const result = removeAdditionalMediaPlayer(config, 0);
+
+      expect(result.media_players).toEqual([
+        { entity: "media_player.bedroom", name: "Bedroom" },
+      ]);
+      expect(result.speaker_group?.entities).toEqual(["media_player.main"]);
+    });
+
+    it("removes the last player without leaving an empty media_players list", () => {
+      const result = removeAdditionalMediaPlayer(
+        {
+          type: "custom:mediocre-media-player-card",
+          entity_id: "media_player.main",
+          media_players: ["media_player.office"],
+        },
+        0
+      );
+
+      expect(result.media_players).toBeUndefined();
+    });
+  });
+
   describe("getDefaultValuesFromConfig", () => {
     it("should preserve grid_options when present", () => {
       const configWithGridOptions: MediocreMediaPlayerCardConfig = {
