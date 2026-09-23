@@ -3,6 +3,7 @@ import { MediocreMediaPlayerCardConfig } from "@types";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { useStore, ValidationErrorMap } from "@tanstack/react-form";
 import {
+  Button,
   EntityPicker,
   FormGroup,
   FormSelect,
@@ -30,6 +31,36 @@ export type MediocreMediaPlayerCardEditorProps = {
 const getEditorValues = (config: MediocreMediaPlayerCardConfig) => {
   const values = getDefaultValuesFromConfig(config);
   return { ...values, media_players: values.media_players ?? [] };
+};
+
+const styles = {
+  playerSelector: css({
+    border: "1px solid var(--outline-color, #e0e0e0)",
+    borderRadius: "6px",
+    padding: "12px 16px",
+    marginBottom: "16px",
+  }),
+  playerSelectorHeader: css({
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginBottom: "12px",
+    color: "var(--primary-text-color)",
+    fontSize: "14px",
+    fontWeight: 500,
+  }),
+  playerSelectorActions: css({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    flexWrap: "wrap",
+    marginTop: "12px",
+  }),
+  playerSelectorHint: css({
+    color: "var(--secondary-text-color)",
+    fontSize: "12px",
+  }),
 };
 
 export const MediocreMediaPlayerCardEditor: FC<
@@ -114,16 +145,84 @@ export const MediocreMediaPlayerCardEditor: FC<
 
   return (
     <form.AppForm>
-      <form.AppField
-        name="entity_id"
-        children={field => (
-          <field.EntityPicker
-            label="Main Media Player Entity"
-            required
-            domains={["media_player"]}
+      {players.length > 0 && (
+        <div css={styles.playerSelector}>
+          <div css={styles.playerSelectorHeader}>
+            <ha-icon icon="mdi:tune" />
+            <span>Configure player</span>
+          </div>
+          <FormSelect
+            fullWidth
+            options={[
+              {
+                name:
+                  hass.states[mainEntity]?.attributes.friendly_name ||
+                  mainEntity ||
+                  "Main player",
+                value: "main",
+              },
+              ...players.map((player, index) => {
+                const entity =
+                  typeof player === "string" ? player : player.entity;
+                return {
+                  name:
+                    (typeof player === "string" ? undefined : player.name) ||
+                    hass.states[entity]?.attributes.friendly_name ||
+                    entity,
+                  value: String(index),
+                };
+              }),
+            ]}
+            selected={extraIndex === null ? "main" : String(extraIndex)}
+            onSelected={setSelectedPlayer}
           />
-        )}
-      />
+          <div css={styles.playerSelectorActions}>
+            <span css={styles.playerSelectorHint}>
+              {extraIndex === null ? "Main player" : "Additional player"}
+            </span>
+            {extraIndex !== null && (
+              <form.Field name="media_players" mode="array">
+                {field => (
+                  <Button
+                    variant="danger"
+                    appearance="plain"
+                    onClick={() => {
+                      field.removeValue(extraIndex);
+                      setSelectedPlayer("main");
+                    }}
+                  >
+                    Remove player
+                  </Button>
+                )}
+              </form.Field>
+            )}
+          </div>
+        </div>
+      )}
+
+      {extraIndex === null ? (
+        <form.AppField
+          name="entity_id"
+          children={field => (
+            <field.EntityPicker
+              label="Main Media Player Entity"
+              required
+              domains={["media_player"]}
+            />
+          )}
+        />
+      ) : (
+        <form.AppField
+          name={`media_players[${extraIndex}].entity` as never}
+          children={field => (
+            <field.EntityPicker
+              label="Media Player Entity"
+              required
+              domains={["media_player"]}
+            />
+          )}
+        />
+      )}
 
       <SubForm
         title="Additional media players (switch by button)"
@@ -155,36 +254,6 @@ export const MediocreMediaPlayerCardEditor: FC<
           )}
         </form.Field>
       </SubForm>
-
-      {players.length > 0 && (
-        <FormGroup>
-          <Label>Configure player</Label>
-          <FormSelect
-            options={[
-              {
-                name:
-                  hass.states[mainEntity]?.attributes.friendly_name ||
-                  mainEntity ||
-                  "Main player",
-                value: "main",
-              },
-              ...players.map((player, index) => {
-                const entity =
-                  typeof player === "string" ? player : player.entity;
-                return {
-                  name:
-                    (typeof player === "string" ? undefined : player.name) ||
-                    hass.states[entity]?.attributes.friendly_name ||
-                    entity,
-                  value: String(index),
-                };
-              }),
-            ]}
-            selected={extraIndex === null ? "main" : String(extraIndex)}
-            onSelected={setSelectedPlayer}
-          />
-        </FormGroup>
-      )}
 
       {extraIndex === null ? (
         <Fragment>
@@ -349,29 +418,6 @@ export const MediocreMediaPlayerCardEditor: FC<
         </Fragment>
       ) : (
         <Fragment>
-          <form.Field name="media_players" mode="array">
-            {field => (
-              <button
-                type="button"
-                onClick={() => {
-                  field.removeValue(extraIndex);
-                  setSelectedPlayer("main");
-                }}
-              >
-                Remove selected player
-              </button>
-            )}
-          </form.Field>
-          <form.AppField
-            name={`media_players[${extraIndex}].entity` as never}
-            children={field => (
-              <field.EntityPicker
-                label="Media Player Entity"
-                required
-                domains={["media_player"]}
-              />
-            )}
-          />
           <form.AppField
             name={`media_players[${extraIndex}].name` as never}
             children={field => <field.Text label="Name (optional)" />}
